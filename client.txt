@@ -1,0 +1,53 @@
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <sys/types.h>
+	#include <sys/ipc.h>
+	#include <sys/msg.h>
+
+	struct msgbuf
+	{
+		long mtype;
+ 		char mtext[200];
+	};
+
+	int main()
+	{
+ 		
+ 		int msqid;
+ 		key_t key;
+		struct msgbuf buf;
+
+ 		if ((key = ftok("server.c", 'S')) == -1)	//get the same key as the server
+		{ 
+ 			perror("ftok");
+ 			exit(EXIT_FAILURE);
+ 		}
+	
+		//just connect to the IPC, as it's already created by the server
+ 		if ((msqid = msgget(key,  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1)
+		{ 
+ 			perror("msgget");
+ 			exit(EXIT_FAILURE);
+ 		}
+
+ 		printf("ready to receive messages \n");
+
+ 		while(1)	// Client keeps reading
+		{ 	
+
+			//ssize_t msgrcv(int msqid, void *msgp, size_t maxmsgsz, long msgtyp, int msgflg);
+			//the 4th argument to msgrcv is the order in which messages should be read, if 0, the 1st msg is removed from the queue and 				returned
+			//if greater than 0, the 1st msg in the queue whose type equals value msgtyp is removed and returned
+			//is less than 0, the 1st msg of the lowest mtype less than or equal to the absolute value of msgtyp is removed and returned
+			
+ 			if (msgrcv(msqid, &buf, sizeof(buf.mtext), 0, 0) == -1)
+			{
+ 				perror("msgrcv");
+ 				exit(EXIT_FAILURE);
+ 			}
+
+ 			printf("message: \"%s\"\n", buf.mtext);
+ 		}
+
+ 		return 0;
+	}

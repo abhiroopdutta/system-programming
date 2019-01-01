@@ -1,0 +1,61 @@
+	#include <fcntl.h>
+	#include <stdio.h>
+	#include <string.h>
+	#include <unistd.h>
+
+
+	//take the number of arguments and the arguments from the command entered by the user
+	int main (int argc, char* argv[])
+	{
+		char* file = argv[1];	//the second argument is the pathname of the file to be locked
+		int fd;			//file descriptor
+		struct flock lock;	//data type - struct flock, different fields of struck flock define
+					//the type of lock we wish to acquire or remove
+
+		printf ("opening %s\n", file);
+
+		// Open the file 
+		fd = open (file, O_WRONLY); 	//the first argument of to the open() syscall is pathname of the file
+						//the second is a flag specifying access mode, here, its write only
+						//the open system call returns a file descriptor to the opened file
+
+		printf ("locking\n");
+
+
+		// Initialize the flock structure
+ 
+		lock.l_type = F_WRLCK;		//specify the type of lock, read/write/unlock
+		lock.l_whence = SEEK_SET;	//whence field specifies the base point from which start is to be interpreted
+						//SEEK_SET means beginning of the file
+		
+		lock.l_start = 0;		//0 means the starting byte from SEEK_SET
+		
+		lock.l_len = 0;			//number of bytes to lock starting from the position defined by whence&start	
+						//0 has a special meaning,i.e, lock all bytes starting from the position 
+						//specified by the whence&start to the end of the file, no matter how large the file grows
+
+			
+
+		// Place a write lock on the file
+
+		fcntl (fd, F_SETLKW, &lock);	//the fcntl() syscall can be used for a wide range of operations, one of which is locking
+						//the first argument is the file descriptor to the file
+						//the second argument specifies the operation we want to do, in this case its locking
+						//F_SETLKW means select the locking operation
+						//based on the type of operation, theres a third argument, which in this case, 
+						//is a pointer to the struct flock structure 	
+
+
+		printf ("locked; hit Enter to unlock... ");
+		// Wait for the user to hit Enter
+		getchar ();
+	
+		printf ("unlocking\n");
+
+		// Release the lock
+		lock.l_type = F_UNLCK;
+		fcntl (fd, F_SETLKW, &lock);
+
+		close (fd);	//release the file descriptor fd and its associated kernel resources
+		return 0;
+	}

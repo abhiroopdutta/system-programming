@@ -1,0 +1,94 @@
+	#include <stdio.h>	//perror, printf, scanf, etc
+	#include <stdlib.h>	//NULL, malloc, calloc, etc
+	#include <sys/types.h>	//size_t, uid_t, gid_t, etc
+	#include <sys/ipc.h>	//for IPC_CREAT, IPC_EXCL, etc
+	#include <sys/msg.h>	//for the structure msqid_ds
+	#include <sys/stat.h>	//for S_IRUSR, S_IWUSR, etc
+	#include <string.h>
+
+	//the first argument to msgsnd() and msgrcv() is a message queue identifier
+	//The second argument, msgp, is a pointer to a programmer-defined structure used to hold the message being sent or received. 
+	//This structure has the following general form:
+
+	struct msgbuf
+	{
+		long mtype; //message type
+		char mtext[200]; //message body
+	};
+	
+	int main()
+	{	
+		int msqid;	//to store the identifier of the IPC object
+		key_t key;	//to store the key value
+		struct msgbuf buf;
+		
+
+		//generate a unique key with ftok(char *pathname, int proj), it takes the pathname to the file, and a project value
+		//Normally, the pathname given to ftok() refers to one of the files or directories that forms part of, or is created by, the 			application
+		//Historically, the proj argument was of type char, and it is often specified as such in calls to ftok
+		//on error it returns -1
+		
+		if ((key = ftok("server.c", 'S')) == -1)
+		{
+ 			perror("ftok");
+ 			exit(EXIT_FAILURE);
+		}
+	
+
+
+		
+		//The msgget() system call creates a new message queue or returns the identifier of an existing queue on successful execution
+		//the key is the first argument, and the identifier is returned as the function result. We specify the permissions to be placed on the 			new 
+		//object as part of the final (flags) argument to the get call
+		//with flags we specify to create an IPC if it doesn't exist and place read, write permission on the user and read permission on group 			and others
+
+		if ((msqid = msgget(key, IPC_CREAT | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) 
+		{
+			perror("msgget");
+ 			exit(EXIT_FAILURE);
+		}
+
+		
+		printf("Enter messages to send ^D to quit");
+		
+		//give the messages a type, we may send the type to ther] client to let it know who sent the message, type = 1, may denote the server
+		buf.mtype = 1;
+		
+		while(fgets(buf.mtext, sizeof(buf.mtext), stdin) != NULL)
+		{
+			int len = strlen(buf.mtext);
+			
+			//replace new line \n by \0, if it exists 
+			if (buf.mtext[len-1] == '\n')
+			buf.mtext[len-1] = '\0';
+			
+			
+			//msgsnd takes IPC identifier, pointer to structure, number of bytes to send, and a flag which can be 0 or IPC_NOWAIT
+			//Normally,if the queue is full, msgsnd() blocks until enough space has become available to allow the message to be
+			//placed on the queue. However, if this flag is specified, then msgsnd() returns immediately with the error EAGAIN.
+
+			if (msgsnd(msqid, &buf, len+1, 0) == -1) // +1 for '\0' 
+ 			perror("msgsnd");
+
+
+			
+			
+
+		}
+		
+		
+		//The msgctl() system call performs control operations on the message queue identified by msqid, the cmd argument specifies the operation
+		//the third argument is a pointer to the structure msqid_ds, we can use NULL in this case, as we don't have to access it here
+		//with IPC_RMID cmd, the msg queue object and its struct msqid_ds, is removed immediately, all messages in the queue are lost
+			
+		if (msgctl(msqid, IPC_RMID, NULL) == -1)
+		{
+ 			perror("msgctl");
+			exit(EXIT_FAILURE);
+
+		}
+		
+		
+
+		return 0;
+	}
