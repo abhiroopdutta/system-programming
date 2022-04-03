@@ -1,0 +1,28 @@
+The strtok runtime function works like this
+
+the first time you call strtok you provide a string that you want to tokenize
+
+char s[] = "this is a string";
+in the above string space seems to be a good delimiter between words so lets use that:
+
+char* p = strtok(s, " ");
+what happens now is that 's' is searched until the space character is found, the first token is returned ('this') and p points to that token (string)
+
+in order to get next token and to continue with the same string NULL is passed as first argument since strtok maintains a static pointer to your previous passed string:
+
+p = strtok(NULL," ");
+p now points to 'is'
+
+and so on until no more spaces can be found, then the last string is returned as the last token 'string'.
+
+more conveniently you could write it like this instead to print out all tokens:
+
+for (char *p = strtok(s," "); p != NULL; p = strtok(NULL, " "))
+{
+  puts(p);
+}
+EDIT:
+
+If you want to store the returned values from strtok you need to copy the token to another buffer e.g. strdup(p); since the original string (pointed to by the static pointer inside strtok) is modified between iterations in order to return the token.
+
+it does indeed replace the ' ' or any other delimiters it found with '\0'. And, it does not restore ' ' later, so your string is ruined for good.
